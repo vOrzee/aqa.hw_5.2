@@ -1,105 +1,79 @@
 package ru.netology;
 
-import io.restassured.builder.RequestSpecBuilder;
-import io.restassured.filter.log.LogDetail;
-import io.restassured.http.ContentType;
-import io.restassured.specification.RequestSpecification;
+import com.codeborne.selenide.Condition;
+import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import ru.netology.dto.RegistrationDto;
-import ru.netology.utils.DataGenerator;
 
-import static io.restassured.RestAssured.given;
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selenide.*;
+import static ru.netology.utils.DataGenerator.Registration.getRegisteredUser;
+import static ru.netology.utils.DataGenerator.Registration.getUser;
+import static ru.netology.utils.DataGenerator.generateLogin;
+import static ru.netology.utils.DataGenerator.generatePassword;
 
 class AuthTest {
-    private static final RequestSpecification requestSpec = new RequestSpecBuilder()
-            .setBaseUri("http://localhost")
-            .setPort(9999)
-            .setAccept(ContentType.JSON)
-            .setContentType(ContentType.JSON)
-            .log(LogDetail.ALL)
-            .build();
-
-    private RegistrationDto user;
 
     @BeforeEach
-    void setUser() {
-        user = DataGenerator.Registration.generateUser();
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(DataGenerator.Registration.generateUser()) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200);
+    void setup() {
+        open("http://localhost:9999");
+    }
+
+    private void sendAuth(RegistrationDto user) {
+        $("[data-test-id='login'] input").setValue(user.getLogin());
+        $("[data-test-id='password'] input").setValue(user.getPassword());
+        $$("button").find(Condition.text("Продолжить")).click();
     }
 
     @Test
-    void changePasswordHappyTest() {
-        user.setPassword(DataGenerator.generatePassword());
-        given()
-                .spec(requestSpec)
-                .body(user)
-                .when()
-                .post("/api/system/users")
-                .then()
-                .statusCode(200);
+    @DisplayName("Should successfully login with active registered user")
+    void shouldSuccessfulLoginIfRegisteredActiveUser() {
+        val registeredUser = getRegisteredUser("active");
+        sendAuth(registeredUser);
+        $(".heading").shouldHave(Condition.text("Личный кабинет"));
     }
 
     @Test
-    void changeLoginHappyTest() {
-        user.setLogin(DataGenerator.generateLogin());
-        given()
-                .spec(requestSpec)
-                .body(user)
-                .when()
-                .post("/api/system/users")
-                .then()
-                .statusCode(200);
-    }
-
-    @ParameterizedTest
-    @CsvSource({
-            "active, 200",
-            "blocked, 200",
-            "inactive, 500",
-            "200, 500",
-            ", 500"
-    })
-    void changeStatusValidationTest(String status, int statusCode) {
-        user.setStatus(status);
-        given()
-                .spec(requestSpec)
-                .body(user)
-                .when()
-                .post("/api/system/users")
-                .then()
-                .statusCode(statusCode);
+    @DisplayName("Should get error message if login with not registered user")
+    void shouldGetErrorIfNotRegisteredUser() {
+        var notRegisteredUser = getUser("active");
+        sendAuth(notRegisteredUser);
+        $("[data-test-id='error-notification']").shouldBe(visible);
+        $("[data-test-id='error-notification'] .notification__content")
+                .shouldBe(Condition.matchText("Неверно указан логин или пароль"));
     }
 
     @Test
-    void checkNullableLogin() {
-        user.setLogin(null);
-        given()
-                .spec(requestSpec)
-                .body(user)
-                .when()
-                .post("/api/system/users")
-                .then()
-                .statusCode(500);
+    @DisplayName("Should get error message if login with blocked registered user")
+    void shouldGetErrorIfBlockedUser() {
+        var blockedUser = getRegisteredUser("blocked");
+        sendAuth(blockedUser);
+        $("[data-test-id='error-notification']").shouldBe(visible);
+        $("[data-test-id='error-notification'] .notification__content")
+                .shouldBe(Condition.matchText("Пользователь заблокирован"));
     }
 
     @Test
-    void checkNullablePassword() {
-        user.setPassword(null);
-        given()
-                .spec(requestSpec)
-                .body(user)
-                .when()
-                .post("/api/system/users")
-                .then()
-                .statusCode(500);
+    @DisplayName("Should get error message if login with wrong login")
+    void shouldGetErrorIfWrongLogin() {
+        var registeredUser = getRegisteredUser("active");
+        registeredUser.setLogin(generateLogin());
+        sendAuth(registeredUser);
+        $("[data-test-id='error-notification']").shouldBe(visible);
+        $("[data-test-id='error-notification'] .notification__content")
+                .shouldBe(Condition.matchText("Неверно указан логин или пароль"));
+    }
+
+    @Test
+    @DisplayName("Should get error message if login with wrong password")
+    void shouldGetErrorIfWrongPassword() {
+        var registeredUser = getRegisteredUser("active");
+        registeredUser.setPassword(generatePassword());
+        sendAuth(registeredUser);
+        $("[data-test-id='error-notification']").shouldBe(visible);
+        $("[data-test-id='error-notification'] .notification__content")
+                .shouldBe(Condition.matchText("Неверно указан логин или пароль"));
     }
 }

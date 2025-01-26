@@ -1,14 +1,11 @@
 package ru.netology.dto;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 
 @Data
-@RequiredArgsConstructor
-@NoArgsConstructor(force = true)
+@AllArgsConstructor
 public class RegistrationDto {
-    public final String login;
-    public final String password;
-    public final String status;
+    String login;
+    String password;
+    String status;
 }

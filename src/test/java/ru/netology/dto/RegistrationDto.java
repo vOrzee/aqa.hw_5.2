@@ -2,8 +2,7 @@ package ru.netology.dto;
 
 import lombok.*;
 
-@Data
-@AllArgsConstructor
+@Value
 public class RegistrationDto {
     String login;
     String password;

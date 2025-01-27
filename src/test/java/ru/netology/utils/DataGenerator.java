@@ -8,11 +8,17 @@ import io.restassured.specification.RequestSpecification;
 import lombok.val;
 import ru.netology.dto.RegistrationDto;
 
-import java.util.Random;
-
 import static io.restassured.RestAssured.given;
 
 public class DataGenerator {
+
+    private static final RequestSpecification requestSpec = new RequestSpecBuilder()
+            .setBaseUri("http://localhost")
+            .setPort(9999)
+            .setAccept(ContentType.JSON)
+            .setContentType(ContentType.JSON)
+            .log(LogDetail.ALL)
+            .build();
 
     private DataGenerator() {
     }
@@ -27,32 +33,19 @@ public class DataGenerator {
         return faker.internet().password();
     }
 
-    public static String generateStatus() {
-        val random = new Random();
-        return random.nextBoolean() ? "active" : "blocked";
+    public static RegistrationDto getUser(String status) {
+        String login = generateLogin();
+        String password = generatePassword();
+        return new RegistrationDto(login, password, status);
     }
 
     public static class Registration {
 
-        public static final RequestSpecification requestSpec = new RequestSpecBuilder()
-                .setBaseUri("http://localhost")
-                .setPort(9999)
-                .setAccept(ContentType.JSON)
-                .setContentType(ContentType.JSON)
-                .log(LogDetail.ALL)
-                .build();
-
         private Registration() {
         }
 
-        public static RegistrationDto getUser(String status) {
-            String login = generateLogin();
-            String password = generatePassword();
-            return new RegistrationDto(login, password, status.isBlank() ? generateStatus() : status);
-        }
-
         public static RegistrationDto getRegisteredUser(String status) {
-            val user = Registration.getUser(status);
+            val user = getUser(status);
             given()
                     .spec(requestSpec)
                     .body(user)

@@ -10,9 +10,9 @@ import ru.netology.dto.RegistrationDto;
 import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.*;
 import static ru.netology.utils.DataGenerator.Registration.getRegisteredUser;
-import static ru.netology.utils.DataGenerator.Registration.getUser;
 import static ru.netology.utils.DataGenerator.generateLogin;
 import static ru.netology.utils.DataGenerator.generatePassword;
+import static ru.netology.utils.DataGenerator.getUser;
 
 class AuthTest {
 
@@ -42,7 +42,7 @@ class AuthTest {
         sendAuth(notRegisteredUser);
         $("[data-test-id='error-notification']").shouldBe(visible);
         $("[data-test-id='error-notification'] .notification__content")
-                .shouldBe(Condition.matchText("Неверно указан логин или пароль"));
+                .shouldHave(Condition.text("Неверно указан логин или пароль"));
     }
 
     @Test
@@ -52,28 +52,28 @@ class AuthTest {
         sendAuth(blockedUser);
         $("[data-test-id='error-notification']").shouldBe(visible);
         $("[data-test-id='error-notification'] .notification__content")
-                .shouldBe(Condition.matchText("Пользователь заблокирован"));
+                .shouldHave(Condition.text("Пользователь заблокирован"));
     }
 
     @Test
     @DisplayName("Should get error message if login with wrong login")
     void shouldGetErrorIfWrongLogin() {
-        var registeredUser = getRegisteredUser("active");
-        registeredUser.setLogin(generateLogin());
-        sendAuth(registeredUser);
+        val registeredUser = getRegisteredUser("active");
+        val wrongLoginUser = new RegistrationDto(generateLogin(), registeredUser.getPassword(), registeredUser.getStatus());
+        sendAuth(wrongLoginUser);
         $("[data-test-id='error-notification']").shouldBe(visible);
         $("[data-test-id='error-notification'] .notification__content")
-                .shouldBe(Condition.matchText("Неверно указан логин или пароль"));
+                .shouldHave(Condition.text("Неверно указан логин или пароль"));
     }
 
     @Test
     @DisplayName("Should get error message if login with wrong password")
     void shouldGetErrorIfWrongPassword() {
-        var registeredUser = getRegisteredUser("active");
-        registeredUser.setPassword(generatePassword());
-        sendAuth(registeredUser);
+        val registeredUser = getRegisteredUser("active");
+        val wrongPasswordUser = new RegistrationDto(registeredUser.getLogin(), generatePassword(), registeredUser.getStatus());
+        sendAuth(wrongPasswordUser);
         $("[data-test-id='error-notification']").shouldBe(visible);
         $("[data-test-id='error-notification'] .notification__content")
-                .shouldBe(Condition.matchText("Неверно указан логин или пароль"));
+                .shouldHave(Condition.text("Неверно указан логин или пароль"));
     }
 }
